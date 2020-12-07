@@ -5,16 +5,21 @@ use warnings;
 use feature 'say';
 
 my $highest = 0;
+my $lowest = 128 * 8;
+my @taken = (0) x (128 * 8);
 while (<>) {
-    chomp $_;
-    my $row = substr($_, 0, 7);
-    $row =~ tr/FB/01/;
-    $row = oct("0b".$row);
-    my $col = substr($_, 7, 3);
-    $col =~ tr/LR/01/;
-    $col = oct("0b".$col);
-    my $id = $row * 8 + $col;
+    chomp;
+    tr/FBLR/0101/;
+    my $id = oct("0b".$_);
+    $taken[$id] = 1;
     $highest = $id if $id > $highest;
+    $lowest = $id if $id < $lowest;
+}
+my $my = $lowest + 1;
+while ($my < $highest) {
+    last if (!$taken[$my]);
+    $my++;
 }
 
 say $highest;
+say $my;
