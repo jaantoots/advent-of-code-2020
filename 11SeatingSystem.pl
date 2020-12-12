@@ -9,11 +9,11 @@ while (<>) {
     chomp;
     push @layout, [split //];
 }
+my $changes;
 
-my @seats = @layout;
-my $changes = -1;
-sub new {
-    my ($row, $col) = @_;
+my $new = sub {
+    my ($sref, $row, $col) = @_;
+    my @seats = @$sref;
     my $state = $seats[$row][$col];
     return $state if $state eq '.';
     my $occupied = 0;
@@ -30,32 +30,35 @@ sub new {
     return 'L' if $state eq '#' and $occupied >= 4;
     $changes--;
     return $state;
-}
+};
 
-my $iterations = 0;
 sub evolve {
+    my ($sref, $newref) = @_;
+    my @seats = @$sref;
     my @new;
     $changes = 0;
     for my $i (0 .. $#seats) {
-        my @row = map { new($i, $_) } (0 .. $#{$seats[$i]});
+        my @row = map { &$newref(\@seats, $i, $_) } (0 .. $#{$seats[$i]});
         push @new, [@row];
     }
-    @seats = @new;
-    $iterations++;
+    return @new;
 }
 
-evolve() until $changes == 0;
+my @seats;
+
+@seats = @layout;
+$changes = -1;
+@seats = evolve(\@seats, $new) until $changes == 0;
 
 my $occupied = 0;
 $occupied += join('', @{$_}) =~ tr/#// for (@seats);
 say $occupied;
 
 
-my @sseats = @layout;
-my $schanges = -1;
-sub snew {
-    my ($row, $col) = @_;
-    my $state = $sseats[$row][$col];
+my $snew = sub {
+    my ($sref, $row, $col) = @_;
+    my @seats = @$sref;
+    my $state = $seats[$row][$col];
     return $state if $state eq '.';
     my $occupied = 0;
     for my $i (-1 .. 1) {
@@ -66,9 +69,9 @@ sub snew {
             while (1) {
                 $ii += $i;
                 $jj += $j;
-                last if $ii < 0 or $ii > $#sseats;
-                last if $jj < 0 or $jj > $#{$sseats[$ii]};
-                my $this = $sseats[$ii][$jj];
+                last if $ii < 0 or $ii > $#seats;
+                last if $jj < 0 or $jj > $#{$seats[$ii]};
+                my $this = $seats[$ii][$jj];
                 next if $this eq '.';
                 last if $this eq 'L';
                 $occupied++ if $this eq '#';
@@ -76,26 +79,17 @@ sub snew {
             }
         }
     }
-    $schanges++;
+    $changes++;
     return '#' if $state eq 'L' and $occupied == 0;
     return 'L' if $state eq '#' and $occupied >= 5;
-    $schanges--;
+    $changes--;
     return $state;
-}
+};
 
-my $siterations = 0;
-sub sevolve {
-    my @new;
-    $schanges = 0;
-    for my $i (0 .. $#sseats) {
-        my @row = map { snew($i, $_) } (0 .. $#{$sseats[$i]});
-        push @new, [@row];
-    }
-    @sseats = @new;
-    $siterations++;
-}
-sevolve() until $schanges == 0;
+@seats = @layout;
+$changes = -1;
+@seats = evolve(\@seats, $snew) until $changes == 0;
 
 my $soccupied = 0;
-$soccupied += join('', @{$_}) =~ tr/#// for (@sseats);
+$soccupied += join('', @{$_}) =~ tr/#// for (@seats);
 say $soccupied;
